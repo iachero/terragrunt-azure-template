@@ -97,11 +97,11 @@ A estrutura do projeto segue o padrão recomendado pela Gruntwork (https://githu
 
 Tenha instalado no seu terminal:
 
-- Terraform
-- Terragrunt
-- Azure CLI
-- make
-
+- Terragrunt (obrigatório: para gerenciar a infraestrutura)
+- Terraform (obrigatório: para criar a infraestrutura)
+- Azure CLI (obrigatório: para login na Azure)
+- make (opcional: para executar os comandos do Makefile)
+- graphviz (opcional: para visualizar o grafo de dependências)
 >DICA: Utilize o script `assets/scripts/install-tools.sh` para instalar os requisitos e outras ferramentas que podem ser necessárias.
 
 1 - Execute o `make structure` para criar a estrutura do projeto.
@@ -138,7 +138,12 @@ terragrunt graph-dependencies --working-dir ./terragrunt/environments/dev/eastus
 
 ### Visualizar o grafo de dependências de todos os módulos
 ```bash
-terragrunt graph-dependencies --working-dir ./terragrunt/environments/dev
+terragrunt graph-dependencies --working-dir ./terragrunt/environments/dev/{region}
+``` 
+
+### Visualizar o grafo de dependências de todos os módulos em formato PNG
+```bash
+terragrunt graph-dependencies | dot -Tpng > grafo-dependencias.png
 ```
 
 ## 🔍 Validação e Formatação

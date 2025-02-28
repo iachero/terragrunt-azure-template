@@ -23,6 +23,7 @@ help:
 	@echo "  plan          	- Gera o plano de execução do Terragrunt 📝"
 	@echo "  apply         	- Aplica as mudanças planejadas 🚀"
 	@echo "  destroy       	- Destrói toda a infraestrutura 💀"
+	@echo "  output        	- Exibe os outputs do Terragrunt 📝"
 	@echo "  all           	- Executa todo o processo (login, init, plan, apply) 🚀"
 	@echo "  pc	    		- Executa o pre-commit run -a 🔍"
 	@echo "  git    		- Executa o git add, commit e push 🔑"
@@ -69,10 +70,10 @@ destroy:
 	@echo ""
 	@echo "Terragrunt Destroy 💀"
 	@terragrunt run-all destroy -auto-approve --working-dir $(TG_WORKING_DIR)
-outputs:
+output:
 	@echo ""
-	@echo "Terragrunt Output"
-	@terragrunt run-all outputs --working-dir $(TG_WORKING_DIR)
+	@echo "Terragrunt Output 📝"
+	@terragrunt run-all output --working-dir $(TG_WORKING_DIR)
 all: apply
 
 pc:
