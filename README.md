@@ -85,6 +85,7 @@ A estrutura do projeto segue o padrão recomendado pela Gruntwork (https://githu
 ```
 
 1 - Execute o `makefile structure` para criar a estrutura do projeto.
+
 2 - Logue na conta Azure: Recomendamos utilizar o service principal para login na Azure e utilizar variaveis de ambiente:
 
 ```bash
@@ -134,7 +135,7 @@ terragrunt hclvalidate --working-dir ./terragrunt
 
 ### Validar inputs do Terragrunt contra variáveis do Terraform
 ```bash
-terragrunt validate-inputs --terragrunt-working-dir ./terragrunt/environments/dev/eastus2/resource_groups/001
+terragrunt validate-inputs --working-dir ./terragrunt/environments/dev/eastus2/resource_groups/001
 ```
 
 
@@ -143,10 +144,10 @@ terragrunt validate-inputs --terragrunt-working-dir ./terragrunt/environments/de
 
 ```bash
 # Visualizar outputs de um módulo
-terragrunt output --terragrunt-working-dir ./terragrunt/environments/dev/eastus2/resource_groups/001
+terragrunt output --working-dir ./terragrunt/environments/dev/eastus2/resource_groups/001
 
 # Forçar desbloqueio de estado
-terragrunt force-unlock LOCK_ID --terragrunt-working-dir ./terragrunt/environments/dev/eastus2/resource_groups/001
+terragrunt force-unlock LOCK_ID --working-dir ./terragrunt/environments/dev/eastus2/resource_groups/001
 ```
 
 
