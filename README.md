@@ -1,6 +1,9 @@
+![Banner Terragrunt](assets/docs/images/banner.png)
+
+
 # 🏗️ Template de IaC com Terraform e Terragrunt 🚀
 
-Este repositório serve como um template para projetos de infraestrutura como código na empresa, utilizando Terraform e Terragrunt para gerenciar recursos na Azure. ☁️
+Este repositório serve como um template para projetos de infraestrutura como código, utilizando Terraform e Terragrunt para gerenciar recursos na Azure. ☁️
 
 ## 📂 Estrutura do Projeto
 
