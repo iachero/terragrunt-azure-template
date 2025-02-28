@@ -89,7 +89,7 @@ A estrutura do projeto segue o padrão recomendado pela Gruntwork (https://githu
 │   │   │   │   │   └── 🗁 001
 │   │   │   │   │       └── terragrunt.hcl
 │   │   │   └── env_hml.hcl
-│   └── 🗁 root.hcl
+│   └── root.hcl
 └── 🐧 Makefile
 ```
 
