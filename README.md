@@ -5,97 +5,104 @@
 
 Este repositório serve como um template para projetos de infraestrutura como código, utilizando Terraform e Terragrunt para gerenciar recursos na Azure. ☁️
 
+## 📝 Convenção de Nomenclatura
+Seguindo a convenção de nomenclatura recomendada pelo CAF - Cloud Adoption Framework da Microsoft para Azure: (https://learn.microsoft.com/en-us/azure/cloud-adoption-framework/ready/azure-best-practices/resource-naming)
+
+![Banner Naming Convention](assets/docs/images/naming-convention.png)
+
 ## 📂 Estrutura do Projeto
 
 A estrutura do projeto segue o padrão recomendado pela Gruntwork (https://github.com/gruntwork-io/terragrunt-infrastructure-live-example/) abaixo sendo adaptado para o Azure:
 
+
 ```
 .
-├── terraform
-│   └── modules
-│       ├── app
+├── 🗁 terraform
+│   └── 🗁 modules
+│       ├── 🗁 app
 │       │   ├── main.tf
 │       │   ├── outputs.tf  
 │       │   ├── variables.tf
 │       │   └── providers.tf
-│       └── db
+│       └── 🗁 db
 │           ├── main.tf
 │           ├── outputs.tf
 │           ├── variables.tf
 │           └── providers.tf
-├── terragrunt
-│   ├── environments
-│   │   ├── dev
-│   │   │   ├── eastus2
-│   │   │   │   ├── resource_groups
-│   │   │   │   │   ├── 001
+├── 🗁 terragrunt
+│   ├── 🗁 environments
+│   │   ├── 🗁 dev
+│   │   │   ├── 🗁 eastus2
+│   │   │   │   ├── 🗁 resource_groups
+│   │   │   │   │   ├── 🗁 001
 │   │   │   │   │   │   └── terragrunt.hcl
-│   │   │   │   │   └── 002
+│   │   │   │   │   └── 🗁 002
 │   │   │   │   │       └── terragrunt.hcl
-│   │   │   │   ├── virtual_networks
-│   │   │   │   │   ├── vnet
-│   │   │   │   │   │   └── 001
+│   │   │   │   ├── 🗁 virtual_networks
+│   │   │   │   │   ├── 🗁 vnet
+│   │   │   │   │   │   └── 🗁 001
 │   │   │   │   │   │       └── terragrunt.hcl
-│   │   │   │   │   └── peering
-│   │   │   │   │       └── 001
+│   │   │   │   │   └── 🗁 peering
+│   │   │   │   │       └── 🗁 001
 │   │   │   │   │           └── terragrunt.hcl
-│   │   │   │   ├── compute
-│   │   │   │   │   ├── vm
-│   │   │   │   │   │   └── 001
+│   │   │   │   ├── 🗁 compute
+│   │   │   │   │   ├── 🗁 vm
+│   │   │   │   │   │   └── 🗁 001
 │   │   │   │   │   │       └── terragrunt.hcl
-│   │   │   │   │   └── aks
-│   │   │   │   │       └── 001
+│   │   │   │   │   └── 🗁 aks
+│   │   │   │   │       └── 🗁 001
 │   │   │   │   │           └── terragrunt.hcl
-│   │   │   │   └── databases
-│   │   │   │       └── postgres_server
-│   │   │   │           └── 001
+│   │   │   │   └── 🗁 databases
+│   │   │   │       └── 🗁 postgres_server
+│   │   │   │           └── 🗁 001
 │   │   │   │               └── terragrunt.hcl
 │   │   │   └── env_dev.hcl
-│   │   ├── prod
-│   │   │   ├── brazilsouth
-│   │   │   │   ├── resource_groups
-│   │   │   │   │   │   ├── 001
+│   │   ├── 🗁 prod
+│   │   │   ├── 🗁 brazilsouth
+│   │   │   │   ├── 🗁 resource_groups
+│   │   │   │   │   │   ├── 🗁 001
 │   │   │   │   │   │   │   └── terragrunt.hcl
-│   │   │   │   │   │   └── 002
+│   │   │   │   │   │   └── 🗁 002
 │   │   │   │   │   │       └── terragrunt.hcl
-│   │   │   │   ├── virtual_networks
-│   │   │   │   │   ├── vnet
-│   │   │   │   │   │   └── 001
+│   │   │   │   ├── 🗁 virtual_networks
+│   │   │   │   │   ├── 🗁 vnet
+│   │   │   │   │   │   └── 🗁 001
 │   │   │   │   │   │       └── terragrunt.hcl
-│   │   │   │   │   └── peering
-│   │   │   │   │       └── 001
+│   │   │   │   │   └── 🗁 peering
+│   │   │   │   │       └── 🗁 001
 │   │   │   │   │           └── terragrunt.hcl
-│   │   │   │   ├── compute
-│   │   │   │   │   ├── vm
-│   │   │   │   │   │   └── 001
+│   │   │   │   ├── 🗁 compute
+│   │   │   │   │   ├── 🗁 vm
+│   │   │   │   │   │   └── 🗁 001
 │   │   │   │   │   │       └── terragrunt.hcl
-│   │   │   │   │   └── aks
-│   │   │   │   │       └── 001
+│   │   │   │   │   └── 🗁 aks
+│   │   │   │   │       └── 🗁 001
 │   │   │   │   │           └── terragrunt.hcl
-│   │   │   │   ├── databases
-│   │   │   │   │   └── postgres_server
-│   │   │   │   │       └── 001
+│   │   │   │   ├── 🗁 databases
+│   │   │   │   │   └── 🗁 postgres_server
+│   │   │   │   │       └── 🗁 001
 │   │   │   │   │           └── terragrunt.hcl
 │   │   │   └── env_prod.hcl
-│   │   ├── hml
-│   │   │   ├── eastus2
-│   │   │   │   ├── resource_groups
-│   │   │   │   │   └── 001
+│   │   ├── 🗁 hml
+│   │   │   ├── 🗁 eastus2
+│   │   │   │   ├── 🗁 resource_groups
+│   │   │   │   │   └── 🗁 001
 │   │   │   │   │       └── terragrunt.hcl
 │   │   │   └── env_hml.hcl
-│   └── root.hcl
-└── Makefile
+│   └── 🗁 root.hcl
+└── 🐧 Makefile
 ```
 
-# Pré-requisitos
+# 📦 Pré-requisitos
 
 Tenha instalado no seu terminal:
 
 - Terraform
 - Terragrunt
 - Azure CLI
-- Make
+- make
 
+>DICA: Utilize o script `assets/scripts/install-tools.sh` para instalar os requisitos e outras ferramentas que podem ser necessárias.
 
 1 - Execute o `make structure` para criar a estrutura do projeto.
 

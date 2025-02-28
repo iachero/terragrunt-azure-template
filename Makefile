@@ -16,27 +16,27 @@ TG_WORKING_DIR      = terragrunt
 .PHONY: help
 help:
 	@echo "Comandos disponíveis:"
-	@echo "  login         	- Realiza login no Azure usando service principal"
-	@echo "  account_set   	- Define a subscription do Azure"
-	@echo "  init          	- Inicializa o Terragrunt"
-	@echo "  validate      	- Valida o Terragrunt"
-	@echo "  plan          	- Gera o plano de execução do Terragrunt"
-	@echo "  apply         	- Aplica as mudanças planejadas"
-	@echo "  destroy       	- Destrói toda a infraestrutura"
-	@echo "  all           	- Executa todo o processo (login, init, plan, apply)"
-	@echo "  pc	    		- Executa o pre-commit run -a"
-	@echo "  git    		- Executa o git add, commit e push"
-	@echo "  structure		- Cria estrutura inicial do projeto"
+	@echo "  login         	- Realiza login no Azure usando service principal 🔑"
+	@echo "  account_set   	- Define a subscription do Azure 🔑"
+	@echo "  init          	- Inicializa o Terragrunt 🔄"
+	@echo "  validate      	- Valida o Terragrunt 🔍"
+	@echo "  plan          	- Gera o plano de execução do Terragrunt 📝"
+	@echo "  apply         	- Aplica as mudanças planejadas 🚀"
+	@echo "  destroy       	- Destrói toda a infraestrutura 💀"
+	@echo "  all           	- Executa todo o processo (login, init, plan, apply) 🚀"
+	@echo "  pc	    		- Executa o pre-commit run -a 🔍"
+	@echo "  git    		- Executa o git add, commit e push 🔑"
+	@echo "  structure		- Cria estrutura inicial do projeto 📂"
 .DEFAULT_GOAL := help
 
 login:
 	@echo ""
-	@echo "Azure Logout"
+	@echo "Azure Logout 🔑"
 	@az logout
-	@echo "Azure Account Clear"
+	@echo "Azure Account Clear 🔑"
 	@az account clear
 	@az config set core.output=table --only-show-errors
-	@echo "Azure Login"
+	@echo "Azure Login 🔑"
 	@az login \
 		-u $(ARM_CLIENT_ID) \
 		-p $(ARM_CLIENT_SECRET) \
@@ -47,26 +47,27 @@ login:
 
 init:
 	@echo ""
-	@echo "Terragrunt init"
+	@echo "Terragrunt init 🔄"
 	@terragrunt run-all init --working-dir $(TG_WORKING_DIR)
 validate:
 	@echo ""
-	@echo "Terragrunt hclfmt e validate"
+	@echo "Terragrunt hclfmt e validate 🔍"
 	@terragrunt run-all hclfmt --working-dir $(TG_WORKING_DIR)
 	@terragrunt run-all validate --working-dir $(TG_WORKING_DIR)
 
 plan: validate
 	@echo ""
-	@echo "Terragrunt Plan"
+	@echo "Terragrunt Plan 📝"
 	@terragrunt run-all plan --working-dir $(TG_WORKING_DIR)
 
 apply: 
 	@echo ""
+	@echo "Terragrunt Apply 🚀"
 	@terragrunt run-all apply -auto-approve --working-dir $(TG_WORKING_DIR)
 
 destroy: 
 	@echo ""
-	@echo "Terragrunt Destroy"
+	@echo "Terragrunt Destroy 💀"
 	@terragrunt run-all destroy -auto-approve --working-dir $(TG_WORKING_DIR)
 outputs:
 	@echo ""
@@ -76,40 +77,40 @@ all: apply
 
 pc:
 	@echo ""
-	@echo "Pre-commit run -a"
+	@echo "Pre-commit run -a 🔍"
 	@git add .
 	@pre-commit run -a
 
 git:
 	@echo ""
-	@echo "Git add, commit e push"
+	@echo "Git add, commit e push 🐙"
 	@git add .
 	@read -p "Digite sua mensagem de commit: " message; \
 	git commit -m "$$message"
 	@git push
 clean:
 	@echo ""
-	@echo "Limpando cache do Terragrunt"
+	@echo "Limpando cache do Terragrunt 🗑️"
 	@find . -type d -name '.terragrunt-cache' -prune -exec rm -rf {} \;
 	@rm -rf /tmp/.terragrunt-cache
-	@echo "Limpando cache do Terraform"
+	@echo "Limpando cache do Terraform 🗑️"
 	@find . -type d -name '.terraform'  -prune -exec rm -rf {} \;
 	@find . -type f -name '.terraform.lock.hcl' -exec rm -f {} \;
-	@echo "Limpando arquivos :Zone.Identifier"
+	@echo "Limpando arquivos :Zone.Identifier 🗑️"
 	@find . -type f -name '*:Zone.Identifier' -exec rm -f {} \;
-	@echo "Limpando arquivos tf.plan"
+	@echo "Limpando arquivos tf.plan 🗑️"
 	@rm -f $(TF_PLAN_FILE)
-	@echo "Limpando arquivos terraform.tfstate"
+	@echo "Limpando arquivos terraform.tfstate 🗑️"
 	@read -p "Tem certeza que deseja remover os arquivos terraform.tfstate? (y/n) " answer; \
 	if [ "$$answer" = "y" ]; then \
 		find . -type f -name 'terraform.tfstate*' -exec rm -f {} \; ; \
-		echo "Arquivos terraform.tfstate removidos com sucesso"; \
+		echo "Arquivos terraform.tfstate removidos com sucesso 🗑️"; \
 	else \
-		echo "Operação cancelada"; \
+		echo "Operação cancelada 🚫"; \
 	fi
 
 structure:
-	@echo "Criando estrutura inicial do projeto..."
+	@echo "Criando estrutura inicial do projeto 📂"
 	@mkdir -p terraform/modules/app
 	@touch terraform/modules/app/main.tf
 	@touch terraform/modules/app/outputs.tf
@@ -162,5 +163,5 @@ structure:
 	
 	@cat assets/hcl-templates/root.hcl > terragrunt/root.hcl
 	
-	@echo "Estrutura do projeto criada com sucesso no caminho: $(PWD)"
+	@echo "Estrutura do projeto criada com sucesso no caminho: $(PWD) 📂"
 	@echo "Para visualizar a estrutura, execute: find . -type d -not -path '*/\.*' | sort"
