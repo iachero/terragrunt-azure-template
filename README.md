@@ -128,7 +128,7 @@ terragrunt graph-dependencies --working-dir ./terragrunt/environments/dev/eastus
 
 ### Visualizar o grafo de dependências de todos os módulos
 ```bash
-terragrunt graph-dependencies --terragrunt-working-dir ./terragrunt/environments/dev
+terragrunt graph-dependencies --working-dir ./terragrunt/environments/dev
 ```
 
 ## 🔍 Validação e Formatação
@@ -204,7 +204,7 @@ terragrunt force-unlock LOCK_ID --working-dir ./terragrunt/environments/dev/east
    terragrunt plan --terragrunt-log-level debug
    
    # Renderizar configuração final como JSON
-   terragrunt render-json --terragrunt-working-dir ./terragrunt/environments/dev/eastus2/resource_groups/001
+   terragrunt render-json --working-dir ./terragrunt/environments/dev/eastus2/resource_groups/001
 ```
 
 
