@@ -84,7 +84,17 @@ A estrutura do projeto segue o padrão recomendado pela Gruntwork (https://githu
 └── Makefile
 ```
 
-1 - Execute o `makefile structure` para criar a estrutura do projeto.
+# Pré-requisitos
+
+Tenha instalado no seu terminal:
+
+- Terraform
+- Terragrunt
+- Azure CLI
+- Make
+
+
+1 - Execute o `make structure` para criar a estrutura do projeto.
 
 2 - Logue na conta Azure: Recomendamos utilizar o service principal para login na Azure e utilizar variaveis de ambiente:
 
