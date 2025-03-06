@@ -102,7 +102,7 @@ Tenha instalado no seu terminal:
 - Azure CLI (obrigatório: para login na Azure)
 - make (opcional: para executar os comandos do Makefile)
 - graphviz (opcional: para visualizar o grafo de dependências)
->DICA: Utilize o script `assets/scripts/install-tools.sh` para instalar os requisitos e outras ferramentas que podem ser necessárias.
+>DICA: Utilize o script `assets/scripts/install-tools.sh` para instalar os requisitos e outras ferramentas que julgar necessárias.
 
 1 - Execute o `make structure` para criar a estrutura do projeto.
 
