@@ -39,7 +39,7 @@ stages:
         terragrunt --version
       displayName: 'Instalar Ferramentas'
 
-    - task: TerraformInstaller@0
+    - task: JasonBJohnson.azure-pipelines-tasks-terraform.azure-pipelines-tasks-terraform-installer.TerraformInstaller@0
       displayName: 'Instalar Terraform'
       inputs:
         terraformVersion: '$(TERRAFORM_VERSION)'
@@ -73,7 +73,7 @@ stages:
     pool:
       vmImage: 'ubuntu-latest'
     steps:
-    - task: TerraformInstaller@0
+    - task: JasonBJohnson.azure-pipelines-tasks-terraform.azure-pipelines-tasks-terraform-installer.TerraformInstaller@0
       displayName: 'Instalar Terraform'
       inputs:
         terraformVersion: '$(TERRAFORM_VERSION)'
@@ -152,7 +152,7 @@ stages:
         artifactName: 'TerraformPlan'
         targetPath: '$(Build.ArtifactStagingDirectory)/plans'
 
-    - task: TerraformInstaller@0
+    - task: JasonBJohnson.azure-pipelines-tasks-terraform.azure-pipelines-tasks-terraform-installer.TerraformInstaller@0
       displayName: 'Instalar Terraform'
       inputs:
         terraformVersion: '$(TERRAFORM_VERSION)'
@@ -198,7 +198,7 @@ stages:
     pool:
       vmImage: 'ubuntu-latest'
     steps:
-    - task: TerraformInstaller@0
+    - task: JasonBJohnson.azure-pipelines-tasks-terraform.azure-pipelines-tasks-terraform-installer.TerraformInstaller@0
       displayName: 'Instalar Terraform'
       inputs:
         terraformVersion: '$(TERRAFORM_VERSION)'
@@ -259,7 +259,7 @@ stages:
     pool:
       vmImage: 'ubuntu-latest'
     steps:
-    - task: TerraformInstaller@0
+    - task: JasonBJohnson.azure-pipelines-tasks-terraform.azure-pipelines-tasks-terraform-installer.TerraformInstaller@0
       displayName: 'Instalar Terraform'
       inputs:
         terraformVersion: '$(TERRAFORM_VERSION)'
@@ -284,8 +284,3 @@ stages:
           
           # Exemplo de rollback - você precisará adaptar conforme sua estratégia de rollback
           # Isso pode ser importar um estado anterior, executar um terragrunt destroy para recursos específicos, etc.
-          echo "Executando rollback para $(ENV_NAME) em $(REGION)..."
-          
-          # Uma opção é usar a tag git da versão anterior estável
-          # git checkout <previous-stable-tag>
-          # terragrunt run-all apply --terragrunt-non-interactive 
