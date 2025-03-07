@@ -121,10 +121,29 @@ az login --service-principal --username ${ARM_CLIENT_ID} --password ${ARM_CLIENT
 ```bash
 ./assets/scripts/cria-azurerm-backend.sh
 
-Configura o `root.hcl` com as informações do Storage Account criado e execute o `makefile init` para inicializar o projeto.
+ > assets/scripts/cria-azurerm-backend.sh                                                                              
+Criando Resource Group...
+Executando: az group create --name rg-terragrunt-state-test --location eastus2 --tags Environment=Production Project=Terraform ManagedBy=IaC
+✅ Sucesso
+Criando Storage Account...
+Executando: az storage account create --resource-group rg-terragrunt-state-test --name stterragruntstate17284 --sku Standard_LRS --encryption-services blob --require-infrastructure-encryption true --tags Environment=Production Project=Terraform ManagedBy=IaC
+✅ Sucesso
+Criando Container...
+Executando: az storage container create --name tg-tfstate --account-name stterragruntstate17284
+✅ Sucesso
+Habilitando versionamento...
+Executando: az storage account blob-service-properties update --resource-group rg-terragrunt-state-test --account-name stterragruntstate17284 --enable-versioning true
+✅ Sucesso
+
+Backend criado com sucesso!
+Resource Group: rg-terragrunt-state-test
+Storage Account: stterragruntstate17284
+Container: tg-tfstate
+Tags aplicadas: Environment=Production Project=Terraform ManagedBy=IaC
 ```
-4. Utilize como os templates como referencia localizados em `assets/hcl-templates` para criar os novos ambientes.
-5. Execute o `make init`, `make plan` e `make apply` para criar o plano de execução e aplicar as alterações na Azure.
+4. Configure o `root.hcl` com as informações do Storage Account criado e execute o `make init` para inicializar o projeto.
+5. Utilize como os templates como referencia localizados em `assets/hcl-templates` para criar os novos ambientes.
+6. Execute o `make init`, `make plan` e `make apply` para criar o plano de execução e aplicar as alterações na Azure.
 
 
 # Comandos úteis

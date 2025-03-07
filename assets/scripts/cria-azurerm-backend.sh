@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Variáveis
-RESOURCE_GROUP="rg-terragrunt-state"
+RESOURCE_GROUP="rg-terragrunt-state-test"
 STORAGE_ACCOUNT="stterragruntstate$RANDOM"
 CONTAINER_NAME="tg-tfstate"
 LOCATION="eastus2"
@@ -44,13 +44,13 @@ run_silent az storage container create \
   --account-name $STORAGE_ACCOUNT
 
 # Adicionar bloqueio de recurso
-echo "Adicionando bloqueio de recurso..."
-run_silent az lock create \
-  --name "lock-tfstate" \
-  --lock-type CanNotDelete \
-  --resource-group $RESOURCE_GROUP \
-  --resource-name $STORAGE_ACCOUNT \
-  --resource-type Microsoft.Storage/storageAccounts
+# echo "Adicionando bloqueio de recurso..."
+# run_silent az lock create \
+#   --name "lock-tfstate" \
+#   --lock-type CanNotDelete \
+#   --resource-group $RESOURCE_GROUP \
+#   --resource-name $STORAGE_ACCOUNT \
+#   --resource-type Microsoft.Storage/storageAccounts
 
 # Configurar rede
 # echo "Configurando rede..."

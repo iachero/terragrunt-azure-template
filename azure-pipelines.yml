@@ -1,0 +1,291 @@
+trigger:
+  branches:
+    include:
+    - main
+    - feature/*
+  paths:
+    include:
+    - terraform/**
+    - terragrunt/**
+
+variables:
+  # Variáveis do ambiente
+  TERRAFORM_VERSION: '1.10.5'
+  TERRAGRUNT_VERSION: '0.73.14'
+  
+  # Definir ambiente default (será substituído pelos parâmetros do pipeline)
+  ENV_NAME: 'dev'
+  REGION: 'eastus2'
+  
+  # Configurações do backend (opcional, pode ser substituído pelas variáveis de ambiente ARM_*)
+  TF_STATE_RG: 'rg-terragrunt-state'
+  TF_STATE_SA: 'stterragruntstate'
+  TF_STATE_CONTAINER: 'tg-tfstate'
+
+stages:
+- stage: Build
+  displayName: 'Build Stage'
+  jobs:
+  - job: Validation
+    displayName: 'Validar Código'
+    pool:
+      vmImage: 'ubuntu-latest'
+    steps:
+    - script: |
+        curl -sL https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh | bash
+        curl -LO "https://github.com/gruntwork-io/terragrunt/releases/download/v$(TERRAGRUNT_VERSION)/terragrunt_linux_amd64" 
+        chmod +x terragrunt_linux_amd64
+        sudo mv terragrunt_linux_amd64 /usr/local/bin/terragrunt
+        terragrunt --version
+      displayName: 'Instalar Ferramentas'
+
+    - task: TerraformInstaller@0
+      displayName: 'Instalar Terraform'
+      inputs:
+        terraformVersion: '$(TERRAFORM_VERSION)'
+
+    - script: |
+        echo "Formatando arquivos Terraform..."
+        terraform fmt -check -recursive ./terraform
+        
+        echo "Formatando arquivos Terragrunt..."
+        terragrunt hclfmt --terragrunt-check --terragrunt-working-dir ./terragrunt
+
+        echo "Validando arquivos HCL..."
+        terragrunt hclvalidate --terragrunt-working-dir ./terragrunt
+      displayName: 'Validar formatação e sintaxe'
+
+    - script: |
+        # Opcional: Execute tflint para verificar problemas comuns
+        find ./terraform -name "*.tf" -type f -exec dirname {} \; | sort -u | while read dir; do
+          echo "Analisando diretório: $dir"
+          cd $dir && tflint
+        done
+      displayName: 'Executar linting (opcional)'
+      continueOnError: true
+
+- stage: Plan
+  displayName: 'Planejar Mudanças'
+  dependsOn: Build
+  jobs:
+  - job: TerragruntPlan
+    displayName: 'Terragrunt Plan'
+    pool:
+      vmImage: 'ubuntu-latest'
+    steps:
+    - task: TerraformInstaller@0
+      displayName: 'Instalar Terraform'
+      inputs:
+        terraformVersion: '$(TERRAFORM_VERSION)'
+
+    - script: |
+        curl -LO "https://github.com/gruntwork-io/terragrunt/releases/download/v$(TERRAGRUNT_VERSION)/terragrunt_linux_amd64" 
+        chmod +x terragrunt_linux_amd64
+        sudo mv terragrunt_linux_amd64 /usr/local/bin/terragrunt
+        terragrunt --version
+      displayName: 'Instalar Terragrunt'
+
+    - task: AzureCLI@2
+      displayName: 'Login no Azure e Plan'
+      inputs:
+        azureSubscription: 'ServiceConnection'
+        scriptType: 'bash'
+        scriptLocation: 'inlineScript'
+        inlineScript: |
+          echo "##[debug] Ambiente: $(ENV_NAME), Região: $(REGION)"
+          
+          # Criando diretório para os planos
+          mkdir -p $(Build.ArtifactStagingDirectory)/plans
+          
+          # Gerando o plano do Terragrunt
+          cd terragrunt/environments/$(ENV_NAME)/$(REGION)
+          
+          # Gerando plano para cada recurso em paralelo com limite de 10 
+          terragrunt run-all plan -out=$(Build.ArtifactStagingDirectory)/plans/tfplan.binary --terragrunt-parallelism=10
+          
+          # Criar arquivo de texto com o plano humanamente legível 
+          echo "Recursos planejados:" > $(Build.ArtifactStagingDirectory)/plans/plan_summary.txt
+          
+          cd $(Build.ArtifactStagingDirectory)/plans
+          # Cria um resumo do plano legível para humanos
+          find . -name "*.binary" -type f | while read -r planfile; do
+            plandir=$(dirname "$planfile")
+            planname=$(basename "$planfile" .binary)
+            terraform show -no-color "$planfile" > "$plandir/${planname}.txt"
+            
+            echo "Plano para $planname:" >> plan_summary.txt
+            terraform show -no-color -json "$planfile" | jq -r '.resource_changes[] | select(.change.actions[0] != "no-op") | "\(.change.actions[0]) \(.type).\(.name)"' >> plan_summary.txt
+            echo "---" >> plan_summary.txt
+          done
+          
+          # Calculando impacto das mudanças
+          echo "Resumo das mudanças:" >> plan_summary.txt
+          echo "Recursos a serem criados: $(grep -c "create" plan_summary.txt)" >> plan_summary.txt
+          echo "Recursos a serem modificados: $(grep -c "update" plan_summary.txt)" >> plan_summary.txt
+          echo "Recursos a serem destruídos: $(grep -c "delete\|destroy" plan_summary.txt)" >> plan_summary.txt
+          
+          # Exibir resumo
+          cat plan_summary.txt
+
+    - task: PublishPipelineArtifact@1
+      displayName: 'Publicar artefatos do plano'
+      inputs:
+        targetPath: '$(Build.ArtifactStagingDirectory)/plans'
+        artifact: 'TerraformPlan'
+        publishLocation: 'pipeline'
+
+- stage: DeployToStaging
+  displayName: 'Implantar em Homologação'
+  dependsOn: Plan
+  # Somente executar este estágio para ambiente dev ou hml
+  condition: and(succeeded(), in(variables['ENV_NAME'], 'dev', 'hml'))
+  jobs:
+  - job: DeployStaging
+    displayName: 'Aplicar Terragrunt'
+    pool:
+      vmImage: 'ubuntu-latest'
+    steps:
+    - task: DownloadPipelineArtifact@2
+      displayName: 'Download artefatos do plano'
+      inputs:
+        buildType: 'current'
+        artifactName: 'TerraformPlan'
+        targetPath: '$(Build.ArtifactStagingDirectory)/plans'
+
+    - task: TerraformInstaller@0
+      displayName: 'Instalar Terraform'
+      inputs:
+        terraformVersion: '$(TERRAFORM_VERSION)'
+
+    - script: |
+        curl -LO "https://github.com/gruntwork-io/terragrunt/releases/download/v$(TERRAGRUNT_VERSION)/terragrunt_linux_amd64" 
+        chmod +x terragrunt_linux_amd64
+        sudo mv terragrunt_linux_amd64 /usr/local/bin/terragrunt
+      displayName: 'Instalar Terragrunt'
+
+    - task: AzureCLI@2
+      displayName: 'Aplicar configuração'
+      inputs:
+        azureSubscription: 'ServiceConnection'
+        scriptType: 'bash'
+        scriptLocation: 'inlineScript'
+        inlineScript: |
+          cd terragrunt/environments/$(ENV_NAME)/$(REGION)
+          
+          # Aplicar os planos usando o arquivo de plano gerado anteriormente
+          terragrunt run-all apply --terragrunt-parallelism=10 --terragrunt-non-interactive
+
+  - job: ValidateDeployment
+    dependsOn: DeployStaging
+    pool: server
+    displayName: 'Validação de Implantação'
+    steps:
+    - task: ManualValidation@1
+      timeoutInMinutes: 1440 # 24 horas
+      inputs:
+        notifyUsers: '$(BUILD_REQUESTEDFOR)'
+        instructions: 'Por favor, valide a implantação em homologação e confirme para continuar.'
+        onTimeout: 'resume'
+
+- stage: DeployToProduction
+  displayName: 'Implantar em Produção'
+  dependsOn: DeployToStaging
+  # Implantar em produção apenas para branch main e quando ENV_NAME for prod
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'), eq(variables['ENV_NAME'], 'prod'))
+  jobs:
+  - job: DeployProductionJob
+    displayName: 'Aplicar Terragrunt em Produção'
+    pool:
+      vmImage: 'ubuntu-latest'
+    steps:
+    - task: TerraformInstaller@0
+      displayName: 'Instalar Terraform'
+      inputs:
+        terraformVersion: '$(TERRAFORM_VERSION)'
+
+    - script: |
+        curl -LO "https://github.com/gruntwork-io/terragrunt/releases/download/v$(TERRAGRUNT_VERSION)/terragrunt_linux_amd64" 
+        chmod +x terragrunt_linux_amd64
+        sudo mv terragrunt_linux_amd64 /usr/local/bin/terragrunt
+      displayName: 'Instalar Terragrunt'
+
+    - task: AzureCLI@2
+      displayName: 'Aplicar configuração em produção'
+      inputs:
+        azureSubscription: 'ServiceConnection'
+        scriptType: 'bash'
+        scriptLocation: 'inlineScript'
+        inlineScript: |
+          cd terragrunt/environments/prod/$(REGION)
+          
+          # Aplicar as configurações em produção
+          # Primeiro gera um plano novo para garantir que está atualizado
+          terragrunt run-all plan --terragrunt-parallelism=10
+          
+          # Aplicar as mudanças
+          terragrunt run-all apply --terragrunt-parallelism=10 --terragrunt-non-interactive
+
+  - job: ValidateProductionDeployment
+    dependsOn: DeployProductionJob
+    pool: server
+    displayName: 'Validação de Implantação em Produção'
+    steps:
+    - task: ManualValidation@1
+      timeoutInMinutes: 4320 # 3 dias
+      inputs:
+        notifyUsers: '$(BUILD_REQUESTEDFOR)'
+        instructions: 'Por favor, valide a implantação em produção e confirme se está tudo correto.'
+        onTimeout: 'reject'
+
+- stage: Rollback
+  displayName: 'Rollback (Se necessário)'
+  dependsOn: DeployToProduction
+  condition: failed('DeployToProduction')
+  jobs:
+  - job: RollbackJob
+    displayName: 'Preparar Rollback'
+    pool: server
+    steps:
+    - task: ManualValidation@1
+      displayName: 'Confirmar Rollback'
+      inputs:
+        notifyUsers: '$(BUILD_REQUESTEDFOR)'
+        instructions: 'A implantação em produção falhou. Deseja executar um rollback?'
+        onTimeout: 'reject'
+
+  - job: ExecuteRollback
+    dependsOn: RollbackJob
+    displayName: 'Executar Rollback'
+    pool:
+      vmImage: 'ubuntu-latest'
+    steps:
+    - task: TerraformInstaller@0
+      displayName: 'Instalar Terraform'
+      inputs:
+        terraformVersion: '$(TERRAFORM_VERSION)'
+
+    - script: |
+        curl -LO "https://github.com/gruntwork-io/terragrunt/releases/download/v$(TERRAGRUNT_VERSION)/terragrunt_linux_amd64" 
+        chmod +x terragrunt_linux_amd64
+        sudo mv terragrunt_linux_amd64 /usr/local/bin/terragrunt
+      displayName: 'Instalar Terragrunt'
+
+    - task: AzureCLI@2
+      displayName: 'Executar rollback'
+      inputs:
+        azureSubscription: 'ServiceConnection'
+        scriptType: 'bash'
+        scriptLocation: 'inlineScript'
+        inlineScript: |
+          # Aqui você pode implementar sua lógica de rollback
+          # Exemplo: Aplicar uma versão anterior específica ou reverter para um estado específico
+          
+          cd terragrunt/environments/$(ENV_NAME)/$(REGION)
+          
+          # Exemplo de rollback - você precisará adaptar conforme sua estratégia de rollback
+          # Isso pode ser importar um estado anterior, executar um terragrunt destroy para recursos específicos, etc.
+          echo "Executando rollback para $(ENV_NAME) em $(REGION)..."
+          
+          # Uma opção é usar a tag git da versão anterior estável
+          # git checkout <previous-stable-tag>
+          # terragrunt run-all apply --terragrunt-non-interactive 
