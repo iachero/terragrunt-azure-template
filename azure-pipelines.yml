@@ -104,12 +104,31 @@ stages:
         if [ ! -d "$HOME/.tgenv" ]; then
           git clone --depth=1 --branch main https://github.com/tgenv/tgenv.git ~/.tgenv
         fi
+        TF_PATH_CONFIG='export PATH="$HOME/.tfenv/bin:$PATH"'
+        TG_PATH_CONFIG='export PATH="$HOME/.tgenv/bin:$PATH"'
         echo "##vso[task.prependpath]$HOME/.tgenv/bin"
-
+        
+        # Verifica e configura para bash se necessário
+        if [ -f "$HOME/.bashrc" ]; then
+            if ! grep -q "$TF_PATH_CONFIG" "$HOME/.bashrc"; then
+                echo "$TF_PATH_CONFIG" >> ~/.bashrc
+                echo -e "${GREEN}Configuração adicionada ao .bashrc${NC}"
+            else
+                echo -e "${YELLOW}Configuração já existe no .bashrc${NC}"
+            fi
+        fi
+        if [ -f "$HOME/.bashrc" ]; then
+            if ! grep -q "$TG_PATH_CONFIG" "$HOME/.bashrc"; then
+                echo "$TG_PATH_CONFIG" >> ~/.bashrc
+                echo -e "${GREEN}Configuração adicionada ao .bashrc${NC}"
+            else
+                echo -e "${YELLOW}Configuração já existe no .bashrc${NC}"
+            fi
+        fi
         # Verificar instalação
         which tfenv
         which tgenv
-      displayName: '⚙️ Instalar tfenv e tgenv'
+      displayName: '⚙️ Install tfenv e tgenv'
 
     # Instalar versões específicas do Terraform e Terragrunt
     - bash: |
@@ -138,7 +157,7 @@ stages:
         tgenv install $TG_VERSION
         tgenv use $TG_VERSION
         terragrunt --version
-      displayName: '⚙️ Instalar Terraform e Terragrunt'
+      displayName: '⚙️ Use Terraform e Terragrunt'
 
     # Validação de código (somente quando a ação não é destroy)
     - bash: |
@@ -148,7 +167,7 @@ stages:
         echo "Formatando e validando arquivos Terragrunt..."
         terragrunt hclfmt --check --working-dir ./terragrunt || true
       # terragrunt hclvalidate --working-dir ./terragrunt || true
-      displayName: '✅ Validar formatação e sintaxe'
+      displayName: '✅ Validate Sintaxe'
       condition: and(succeeded(), ne('${{ parameters.action }}', 'destroy'))
 
     # Executar ação do Terragrunt baseada no parâmetro
