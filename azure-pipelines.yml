@@ -114,7 +114,6 @@ stages:
               cp $(downloadPrivateKey.secureFilePath) ~/.ssh/id_rsa
               chmod 600 ~/.ssh/id_rsa
 
-
               # Adicionar dev.azure.com ao known_hosts
               ssh-keyscan -H dev.azure.com >> ~/.ssh/known_hosts
               chmod 600 ~/.ssh/known_hosts
@@ -239,21 +238,8 @@ stages:
                     terragrunt run-all validate --non-interactive
                     ;;
                   plan)
-                    # Criar diretório para planos
-                    mkdir -p $(Build.ArtifactStagingDirectory)/plans
-                    
                     # Gerar plano detalhado
-                    terragrunt run-all plan --non-interactive --out=$(Build.ArtifactStagingDirectory)/plans/tfplan.binary
-                    
-                    # Criar resumo legível do plano
-                    cd $(Build.ArtifactStagingDirectory)/plans
-                    if [ -f "tfplan.binary" ]; then
-                      terraform show -no-color tfplan.binary > plan.txt
-                      echo "Resumo do plano:" > plan_summary.txt
-                      cat plan.txt | grep -E 'Plan:|will be created|will be destroyed|will be updated' >> plan_summary.txt
-                      echo "---"
-                      cat plan_summary.txt
-                    fi
+                    terragrunt run-all plan --non-interactive 
                     ;;
                   apply)
                     terragrunt run-all apply --non-interactive --auto-approve
@@ -265,16 +251,6 @@ stages:
                     terragrunt run-all output --non-interactive
                     ;;
                 esac
-
-          # Publicar artefatos se estiver em modo de plano
-          - task: PublishPipelineArtifact@1
-            displayName: "📦 Publicar artefatos do plano"
-            inputs:
-              targetPath: "$(Build.ArtifactStagingDirectory)/plans"
-              artifact: "TerraformPlan"
-              publishLocation: "pipeline"
-            condition: and(succeeded(), eq('${{ parameters.action }}', 'plan'))
-
           # Outputs em caso de apply ou output
           - bash: |
               if [[ "${{ parameters.action }}" == "apply" || "${{ parameters.action }}" == "output" ]]; then
