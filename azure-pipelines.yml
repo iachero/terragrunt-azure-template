@@ -76,7 +76,6 @@ variables:
   TF_STATE_RG: 'rg-terragrunt-state'
   TF_STATE_SA: 'stterragruntstate'
   TF_STATE_CONTAINER: 'tg-tfstate'
-
 stages:
 - stage: Infrastructure
   displayName: '🏗️ Infraestrutura como Código'
@@ -89,14 +88,15 @@ stages:
     # Instalar tfenv e tgenv
     - bash: |
         echo "Instalando pré-requisitos..."
-        sudo apt-get update && sudo apt-get install -y git curl unzip jq
-
+        
         echo "Instalando Terraform Version Manager (tfenv)..."
         if [ ! -d "$HOME/.tfenv" ]; then
           git clone --depth=1 https://github.com/tfutils/tfenv.git ~/.tfenv
         fi
         mkdir -p ~/.local/bin/
         ln -sf ~/.tfenv/bin/* ~/.local/bin/
+        export PATH="$HOME/.tfenv/bin:$PATH"
+        export PATH="$HOME/.local/bin:$PATH"
         echo "##vso[task.prependpath]$HOME/.tfenv/bin"
         echo "##vso[task.prependpath]$HOME/.local/bin"
 
@@ -104,30 +104,25 @@ stages:
         if [ ! -d "$HOME/.tgenv" ]; then
           git clone --depth=1 --branch main https://github.com/tgenv/tgenv.git ~/.tgenv
         fi
-        TF_PATH_CONFIG='export PATH="$HOME/.tfenv/bin:$PATH"'
-        TG_PATH_CONFIG='export PATH="$HOME/.tgenv/bin:$PATH"'
+        export PATH="$HOME/.tgenv/bin:$PATH"
         echo "##vso[task.prependpath]$HOME/.tgenv/bin"
         
-        # Verifica e configura para bash se necessário
-        if [ -f "$HOME/.bashrc" ]; then
-            if ! grep -q "$TF_PATH_CONFIG" "$HOME/.bashrc"; then
-                echo "$TF_PATH_CONFIG" >> ~/.bashrc
-                echo -e "${GREEN}Configuração adicionada ao .bashrc${NC}"
-            else
-                echo -e "${YELLOW}Configuração já existe no .bashrc${NC}"
-            fi
-        fi
-        if [ -f "$HOME/.bashrc" ]; then
-            if ! grep -q "$TG_PATH_CONFIG" "$HOME/.bashrc"; then
-                echo "$TG_PATH_CONFIG" >> ~/.bashrc
-                echo -e "${GREEN}Configuração adicionada ao .bashrc${NC}"
-            else
-                echo -e "${YELLOW}Configuração já existe no .bashrc${NC}"
-            fi
-        fi
         # Verificar instalação
-        which tfenv
-        which tgenv
+        echo "Verificando instalação do tfenv..."
+        which tfenv || echo "tfenv não encontrado no PATH"
+        
+        echo "Verificando instalação do tgenv..."
+        which tgenv || echo "tgenv não encontrado no PATH"
+        
+        # Listar diretórios para debug
+        echo "Conteúdo de ~/.tfenv/bin:"
+        ls -la ~/.tfenv/bin || echo "Diretório não encontrado"
+        
+        echo "Conteúdo de ~/.tgenv/bin:"
+        ls -la ~/.tgenv/bin || echo "Diretório não encontrado"
+        
+        echo "PATH atual:"
+        echo $PATH
       displayName: '⚙️ Install tfenv e tgenv'
 
     # Instalar versões específicas do Terraform e Terragrunt
