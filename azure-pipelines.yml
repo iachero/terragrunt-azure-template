@@ -98,7 +98,7 @@ stages:
     - task: AzureCLI@2
       displayName: '🔄 Terragrunt ${{ parameters.action }}'
       inputs:
-        azureSubscription: 'ServiceConnection'
+        azureSubscription: 'SP-MPN'
         scriptType: 'bash'
         scriptLocation: 'inlineScript'
         inlineScript: |
