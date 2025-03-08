@@ -214,7 +214,7 @@ jobs:
               terragrunt run-all destroy --non-interactive --auto-approve
               ;;
             output)
-              terragrunt run-all output --non-interactive
+              terragrunt run-all output --non-interactive --log-disable
               ;;
           esac
 
@@ -228,7 +228,7 @@ jobs:
         run: |
           echo "Coletando outputs..."
           cd terragrunt/environments/${{ env.ENV_NAME }}/${{ env.REGION }}
-          terragrunt run-all output --non-interactive || true
+          terragrunt run-all output --non-interactive --log-disable || true
 
   validation:
     name: ✓ Validar Implantação
