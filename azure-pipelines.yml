@@ -249,10 +249,15 @@ stages:
                     terragrunt run-all output --non-interactive
                     ;;
                 esac
+              
           # Outputs em caso de apply ou output
           - bash: |
               if [[ "${{ parameters.action }}" == "apply" || "${{ parameters.action }}" == "output" ]]; then
                 echo "Coletando outputs..."
+                export ARM_CLIENT_ID="$(ARM_CLIENT_ID)"
+                export ARM_CLIENT_SECRET="$(ARM_CLIENT_SECRET)"
+                export ARM_SUBSCRIPTION_ID="$(ARM_SUBSCRIPTION_ID)"
+                export ARM_TENANT_ID="$(ARM_TENANT_ID)"
                 cd terragrunt/environments/$(ENV_NAME)/$(REGION)
                 terragrunt run-all output --non-interactive || true
               fi
