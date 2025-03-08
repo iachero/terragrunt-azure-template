@@ -95,7 +95,7 @@ stages:
           - bash: |
               echo "##vso[task.setvariable variable=AgentName;isoutput=true]$(Agent.Name)"
             name: passOutput
-            displayName: "🖥️ - Capturar Nome do Agente"
+            # displayName: "🖥️ - Capturar Nome do Agente"
 
           - task: DownloadSecureFile@1
             name: downloadPrivateKey
@@ -187,6 +187,7 @@ stages:
               tgenv install $TG_VERSION
               tgenv use $TG_VERSION
               terragrunt --version
+              
             displayName: "⚙️ Use Terraform e Terragrunt"
 
           # Validação de código (somente quando a ação não é destroy)
@@ -210,7 +211,7 @@ stages:
               inlineScript: |
                 set -e
                 echo "Executando Terragrunt ${{ parameters.action }} para $(ENV_NAME) em $(REGION)"
-
+                mkdir -p /tmp/.terragrunt-cache/.plugins
                 # Exportar as variáveis do grupo MPN-VARS como variáveis de ambiente
                 export ARM_CLIENT_ID="$(ARM_CLIENT_ID)"
                 export ARM_CLIENT_SECRET="$(ARM_CLIENT_SECRET)"

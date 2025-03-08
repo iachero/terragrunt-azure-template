@@ -59,7 +59,7 @@ validate:
 plan: validate
 	@echo ""
 	@echo "Terragrunt Plan 📝"
-	@terragrunt run-all plan --working-dir $(TG_WORKING_DIR)
+	@terragrunt run-all plan --working-dir $(TG_WORKING_DIR) --strict-mode=true
 
 apply: 
 	@echo ""

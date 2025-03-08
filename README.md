@@ -14,7 +14,6 @@ Seguindo a convenção de nomenclatura recomendada pelo CAF - Cloud Adoption Fra
 
 A estrutura do projeto segue o padrão recomendado pela Gruntwork (https://github.com/gruntwork-io/terragrunt-infrastructure-live-example/) abaixo sendo adaptado para o Azure:
 
-
 ```
 .
 ├── 🗁 terraform
@@ -93,7 +92,7 @@ A estrutura do projeto segue o padrão recomendado pela Gruntwork (https://githu
 └── 🐧 Makefile
 ```
 
-# 📦 Pré-requisitos
+# ✍ Pré-requisitos
 
 Tenha instalado no seu terminal:
 
@@ -145,7 +144,18 @@ Tags aplicadas: Environment=Production Project=Terraform ManagedBy=IaC
 5. Utilize como os templates como referencia localizados em `assets/hcl-templates` para criar os novos ambientes.
 6. Execute o `make init`, `make plan` e `make apply` para criar o plano de execução e aplicar as alterações na Azure.
 
+# 🚀 CI/CD
 
+Veja a documentação das soluções de CI/CD para o Azure e GitHub.	
+
+| ✈️ Azure Pipelines | ✈️ GitHub Actions |
+|:------------------:|:------------------:|
+| <img src="assets/docs/images/azure-pipelines.png" width="150" alt="Banner Azure Pipelines"> | <img src="assets/docs/images/github-actions.png" width="150" alt="Banner GitHub Actions"> |
+| [README](assets/azure-pipelines/README.md)  | [README](assets/github-actions/README.md) |
+
+
+
+#
 # Comandos úteis
 
 ## 📦 Gerenciamento de Dependências
@@ -242,3 +252,4 @@ terragrunt force-unlock LOCK_ID --working-dir ./terragrunt/environments/dev/east
 ```
 
 
+Maintained by 👨🏻‍💻 [@diogofrj](https://github.com/diogofrj)
