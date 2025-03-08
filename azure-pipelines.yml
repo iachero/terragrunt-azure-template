@@ -1,12 +1,12 @@
 trigger:
   branches:
     include:
-    - main
-    - feature/*
+      - main
+      - feature/*
   paths:
     include:
-    - terraform/**
-    - terragrunt/**
+      - terraform/**
+      - terragrunt/**
 
 parameters:
   - name: action
@@ -29,30 +29,30 @@ parameters:
       - output
 
   - name: terraform_version
-    displayName: '🌐 Versão do Terraform'
-    default: '1.10.5'
+    displayName: "🌐 Versão do Terraform"
+    default: "1.10.5"
     type: string
     values:
-      - '1.10.5'
-      - '1.9.8'
-      - '1.8.0'
-      - '1.7.5'
-      - 'latest'
+      - "1.10.5"
+      - "1.9.8"
+      - "1.8.0"
+      - "1.7.5"
+      - "latest"
 
   - name: terragrunt_version
-    displayName: '🌐 Versão do Terragrunt'
-    default: '0.73.14'
+    displayName: "🌐 Versão do Terragrunt"
+    default: "0.73.14"
     type: string
     values:
-      - '0.73.14'
-      - '0.67.9'
-      - '0.53.8'
-      - '0.48.0'
-      - 'latest'
+      - "0.73.14"
+      - "0.67.9"
+      - "0.53.8"
+      - "0.48.0"
+      - "latest"
 
   - name: environment
-    displayName: '🌐 Ambiente'
-    default: 'dev'
+    displayName: "🌐 Ambiente"
+    default: "dev"
     type: string
     values:
       - dev
@@ -60,17 +60,17 @@ parameters:
       - prod
 
   - name: region
-    displayName: '🌍 Região'
-    default: 'eastus2'
+    displayName: "🌍 Região"
+    default: "eastus2"
     type: string
     values:
       - eastus2
       - brazilsouth
 
 variables:
-  - group: MPN-VARS  # Nome do grupo criado
+  - group: MPN-VARS # Nome do grupo criado
   - name: serviceConnectionName
-    value: 'SP-MPN'
+    value: "SP-MPN"
   - name: System.Debug
     value: true
   # Variáveis de ambiente
@@ -80,196 +80,225 @@ variables:
     value: ${{ parameters.region }}
   # Configurações do backend
   - name: TF_STATE_RG
-    value: 'rg-terragrunt-state'
+    value: "rg-terragrunt-state"
   - name: TF_STATE_SA
-    value: 'stterragruntstate'
+    value: "stterragruntstate"
   - name: TF_STATE_CONTAINER
-    value: 'tg-tfstate'
-    
+    value: "tg-tfstate"
+
 stages:
-- stage: Infrastructure
-  displayName: '🏗️ Infraestrutura como Código'
-  jobs:
-  - job: TerragruntJob
-    displayName: '🚀 Terragrunt ${{ parameters.action }}'
-    pool:
-      vmImage: 'ubuntu-24.04'
-    steps:
-    # Instalar tfenv e tgenv
-    - bash: |
-        echo "Instalando pré-requisitos..."
-        
-        echo "Instalando Terraform Version Manager (tfenv)..."
-        if [ ! -d "$HOME/.tfenv" ]; then
-          git clone --depth=1 https://github.com/tfutils/tfenv.git ~/.tfenv
-        fi
-        mkdir -p ~/.local/bin/
-        ln -sf ~/.tfenv/bin/* ~/.local/bin/
-        export PATH="$HOME/.tfenv/bin:$PATH"
-        export PATH="$HOME/.local/bin:$PATH"
-        echo "##vso[task.prependpath]$HOME/.tfenv/bin"
-        echo "##vso[task.prependpath]$HOME/.local/bin"
+  - stage: Infrastructure
+    displayName: "🏗️ Infraestrutura como Código"
+    jobs:
+      - job: TerragruntJob
+        displayName: "🚀 Terragrunt ${{ parameters.action }}"
+        pool:
+          vmImage: "ubuntu-24.04"
+        steps:
+          - bash: |
+              echo "##vso[task.setvariable variable=AgentName;isoutput=true]$(Agent.Name)"
+              name: passOutput
+              displayName: '🖥️ - Capturar Nome do Agente'
 
-        echo "Instalando Terragrunt Version Manager (tgenv)..."
-        if [ ! -d "$HOME/.tgenv" ]; then
-          git clone --depth=1 --branch main https://github.com/tgenv/tgenv.git ~/.tgenv
-        fi
-        export PATH="$HOME/.tgenv/bin:$PATH"
-        echo "##vso[task.prependpath]$HOME/.tgenv/bin"
-        
-        # Verificar instalação
-        echo "Verificando instalação do tfenv..."
-        which tfenv || echo "tfenv não encontrado no PATH"
-        
-        echo "Verificando instalação do tgenv..."
-        which tgenv || echo "tgenv não encontrado no PATH"
-        
-        # Listar diretórios para debug
-        echo "Conteúdo de ~/.tfenv/bin:"
-        ls -la ~/.tfenv/bin || echo "Diretório não encontrado"
-        
-        echo "Conteúdo de ~/.tgenv/bin:"
-        ls -la ~/.tgenv/bin || echo "Diretório não encontrado"
-        
-        echo "PATH atual:"
-        echo $PATH
-      displayName: '⚙️ Install tfenv e tgenv'
+          - task: DownloadSecureFile@1
+            name: downloadPrivateKey
+            displayName: "🔑 Download Private SSH Key"
+            inputs:
+              secureFile: "id_rsa"
 
-    # Instalar versões específicas do Terraform e Terragrunt
-    - bash: |
-        # Definir versão do Terraform
-        TF_VERSION="${{ parameters.terraform_version }}"
-        if [ "$TF_VERSION" = "latest" ]; then
-          TF_VERSION=$(tfenv list-remote | grep -v "-" | head -n 1)
-          echo "Usando a versão mais recente do Terraform: $TF_VERSION"
-        fi
+          - script: |
+              # Criar o diretório .ssh se não existir
+              mkdir -p ~/.ssh
+              chmod 700 ~/.ssh
 
-        # Instalar e usar a versão do Terraform
-        echo "Instalando Terraform $TF_VERSION..."
-        tfenv install $TF_VERSION
-        tfenv use $TF_VERSION
-        terraform --version
+              # Adicionar a chave privada e pública
+              cp $(downloadPrivateKey.secureFilePath) ~/.ssh/id_rsa
+              chmod 600 ~/.ssh/id_rsa
 
-        # Definir versão do Terragrunt
-        TG_VERSION="${{ parameters.terragrunt_version }}"
-        if [ "$TG_VERSION" = "latest" ]; then
-          TG_VERSION=$(curl -s https://api.github.com/repos/gruntwork-io/terragrunt/releases/latest | grep '"tag_name":' | sed -E 's/.*"v([^"]+)".*/\1/')
-          echo "Usando a versão mais recente do Terragrunt: $TG_VERSION"
-        fi
 
-        # Instalar e usar a versão do Terragrunt
-        echo "Instalando Terragrunt $TG_VERSION..."
-        tgenv install $TG_VERSION
-        tgenv use $TG_VERSION
-        terragrunt --version
-      displayName: '⚙️ Use Terraform e Terragrunt'
+              # Adicionar dev.azure.com ao known_hosts
+              ssh-keyscan -H dev.azure.com >> ~/.ssh/known_hosts
+              chmod 600 ~/.ssh/known_hosts
 
-    # Validação de código (somente quando a ação não é destroy)
-    - bash: |
-        echo "Formatando e validando arquivos Terraform..."
-        terraform fmt --check --recursive ./terraform || true
-        
-        echo "Formatando e validando arquivos Terragrunt..."
-        terragrunt hclfmt --check --working-dir ./terragrunt || true
-      # terragrunt hclvalidate --working-dir ./terragrunt || true
-      displayName: '✅ Validate Sintaxe'
-      condition: and(succeeded(), ne('${{ parameters.action }}', 'destroy'))
+              # Criar o arquivo de configuração do SSH e desabilitar host key checking
+              echo -e "Host *\n  StrictHostKeyChecking no\n  UserKnownHostsFile=/dev/null" > ~/.ssh/config
+              chmod 600 ~/.ssh/config
+            displayName: "🔑 - Instalar Chave SSH"
+          # Instalar tfenv e tgenv
+          - bash: |
+              echo "Instalando pré-requisitos..."
 
-    # Executar ação do Terragrunt baseada no parâmetro
-    - task: AzureCLI@2
-      displayName: '🔄 Terragrunt ${{ parameters.action }}'
-      inputs:
-        azureSubscription: 'SP-MPN'
-        scriptType: 'bash'
-        scriptLocation: 'inlineScript'
-        inlineScript: |
-          set -e
-          echo "Executando Terragrunt ${{ parameters.action }} para $(ENV_NAME) em $(REGION)"
-          
-          # Exportar as variáveis do grupo MPN-VARS como variáveis de ambiente
-          export ARM_CLIENT_ID="$(ARM_CLIENT_ID)"
-          export ARM_CLIENT_SECRET="$(ARM_CLIENT_SECRET)"
-          export ARM_SUBSCRIPTION_ID="$(ARM_SUBSCRIPTION_ID)"
-          export ARM_TENANT_ID="$(ARM_TENANT_ID)"
-          
-          # Verificar se as variáveis foram exportadas corretamente (não mostra o valor, apenas se existe)
-          echo "Verificando variáveis de ambiente:"
-          echo "ARM_CLIENT_ID: $(if [ -n "$ARM_CLIENT_ID" ]; then echo "definido"; else echo "não definido"; fi)"
-          echo "ARM_CLIENT_SECRET: $(if [ -n "$ARM_CLIENT_SECRET" ]; then echo "definido"; else echo "não definido"; fi)"
-          echo "ARM_SUBSCRIPTION_ID: $(if [ -n "$ARM_SUBSCRIPTION_ID" ]; then echo "definido"; else echo "não definido"; fi)"
-          echo "ARM_TENANT_ID: $(if [ -n "$ARM_TENANT_ID" ]; then echo "definido"; else echo "não definido"; fi)"
-          
-          # Navegando para o diretório do ambiente
-          cd terragrunt/environments/$(ENV_NAME)/$(REGION)
-          
-          # Executando a ação solicitada
-          case "${{ parameters.action }}" in
-            init)
-              terragrunt run-all init --non-interactive
-              ;;
-            validate)
-              terragrunt run-all validate --non-interactive
-              ;;
-            plan)
-              # Criar diretório para planos
-              mkdir -p $(Build.ArtifactStagingDirectory)/plans
-              
-              # Gerar plano detalhado
-              terragrunt run-all plan --non-interactive --out=$(Build.ArtifactStagingDirectory)/plans/tfplan.binary
-              
-              # Criar resumo legível do plano
-              cd $(Build.ArtifactStagingDirectory)/plans
-              if [ -f "tfplan.binary" ]; then
-                terraform show -no-color tfplan.binary > plan.txt
-                echo "Resumo do plano:" > plan_summary.txt
-                cat plan.txt | grep -E 'Plan:|will be created|will be destroyed|will be updated' >> plan_summary.txt
-                echo "---"
-                cat plan_summary.txt
+              echo "Instalando Terraform Version Manager (tfenv)..."
+              if [ ! -d "$HOME/.tfenv" ]; then
+                git clone --depth=1 https://github.com/tfutils/tfenv.git ~/.tfenv
               fi
-              ;;
-            apply)
-              terragrunt run-all apply --non-interactive --auto-approve
-              ;;
-            destroy)
-              terragrunt run-all destroy --non-interactive --auto-approve
-              ;;
-            output)
-              terragrunt run-all output --non-interactive
-              ;;
-          esac
+              mkdir -p ~/.local/bin/
+              ln -sf ~/.tfenv/bin/* ~/.local/bin/
+              export PATH="$HOME/.tfenv/bin:$PATH"
+              export PATH="$HOME/.local/bin:$PATH"
+              echo "##vso[task.prependpath]$HOME/.tfenv/bin"
+              echo "##vso[task.prependpath]$HOME/.local/bin"
 
-    # Publicar artefatos se estiver em modo de plano
-    - task: PublishPipelineArtifact@1
-      displayName: '📦 Publicar artefatos do plano'
-      inputs:
-        targetPath: '$(Build.ArtifactStagingDirectory)/plans'
-        artifact: 'TerraformPlan'
-        publishLocation: 'pipeline'
-      condition: and(succeeded(), eq('${{ parameters.action }}', 'plan'))
+              echo "Instalando Terragrunt Version Manager (tgenv)..."
+              if [ ! -d "$HOME/.tgenv" ]; then
+                git clone --depth=1 --branch main https://github.com/tgenv/tgenv.git ~/.tgenv
+              fi
+              export PATH="$HOME/.tgenv/bin:$PATH"
+              echo "##vso[task.prependpath]$HOME/.tgenv/bin"
 
-    # Outputs em caso de apply ou output
-    - bash: |
-        if [[ "${{ parameters.action }}" == "apply" || "${{ parameters.action }}" == "output" ]]; then
-          echo "Coletando outputs..."
-          cd terragrunt/environments/$(ENV_NAME)/$(REGION)
-          terragrunt run-all output --non-interactive || true
-        fi
-      displayName: '📋 Mostrar outputs'
-      condition: and(succeeded(), or(eq('${{ parameters.action }}', 'apply'), eq('${{ parameters.action }}', 'output')))
+              # Verificar instalação
+              echo "Verificando instalação do tfenv..."
+              which tfenv || echo "tfenv não encontrado no PATH"
 
-- stage: Validation
-  displayName: '🔍 Validação'
-  dependsOn: Infrastructure
-  # Somente executar estágio de validação após aplicar mudanças em produção
-  condition: and(succeeded(), eq('${{ parameters.action }}', 'apply'), eq('${{ parameters.environment }}', 'prod'))
-  jobs:
-  - job: ValidationJob
-    displayName: '✓ Validar Implantação'
-    pool: server
-    steps:
-    - task: ManualValidation@1
-      timeoutInMinutes: 1440 # 24 horas
-      inputs:
-        notifyUsers: '$(BUILD_REQUESTEDFOR)'
-        instructions: 'Por favor, valide a implantação em produção e confirme se está tudo correto.'
-        onTimeout: 'resume'
+              echo "Verificando instalação do tgenv..."
+              which tgenv || echo "tgenv não encontrado no PATH"
+
+              # Listar diretórios para debug
+              echo "Conteúdo de ~/.tfenv/bin:"
+              ls -la ~/.tfenv/bin || echo "Diretório não encontrado"
+
+              echo "Conteúdo de ~/.tgenv/bin:"
+              ls -la ~/.tgenv/bin || echo "Diretório não encontrado"
+
+              echo "PATH atual:"
+              echo $PATH
+            displayName: "⚙️ Install tfenv e tgenv"
+
+          # Instalar versões específicas do Terraform e Terragrunt
+          - bash: |
+              # Definir versão do Terraform
+              TF_VERSION="${{ parameters.terraform_version }}"
+              if [ "$TF_VERSION" = "latest" ]; then
+                TF_VERSION=$(tfenv list-remote | grep -v "-" | head -n 1)
+                echo "Usando a versão mais recente do Terraform: $TF_VERSION"
+              fi
+
+              # Instalar e usar a versão do Terraform
+              echo "Instalando Terraform $TF_VERSION..."
+              tfenv install $TF_VERSION
+              tfenv use $TF_VERSION
+              terraform --version
+
+              # Definir versão do Terragrunt
+              TG_VERSION="${{ parameters.terragrunt_version }}"
+              if [ "$TG_VERSION" = "latest" ]; then
+                TG_VERSION=$(curl -s https://api.github.com/repos/gruntwork-io/terragrunt/releases/latest | grep '"tag_name":' | sed -E 's/.*"v([^"]+)".*/\1/')
+                echo "Usando a versão mais recente do Terragrunt: $TG_VERSION"
+              fi
+
+              # Instalar e usar a versão do Terragrunt
+              echo "Instalando Terragrunt $TG_VERSION..."
+              tgenv install $TG_VERSION
+              tgenv use $TG_VERSION
+              terragrunt --version
+            displayName: "⚙️ Use Terraform e Terragrunt"
+
+          # Validação de código (somente quando a ação não é destroy)
+          - bash: |
+              echo "Formatando e validando arquivos Terraform..."
+              terraform fmt --check --recursive ./terraform || true
+
+              echo "Formatando e validando arquivos Terragrunt..."
+              terragrunt hclfmt --check --working-dir ./terragrunt || true
+            # terragrunt hclvalidate --working-dir ./terragrunt || true
+            displayName: "✅ Validate Sintaxe"
+            condition: and(succeeded(), ne('${{ parameters.action }}', 'destroy'))
+
+          # Executar ação do Terragrunt baseada no parâmetro
+          - task: AzureCLI@2
+            displayName: "🔄 Terragrunt ${{ parameters.action }}"
+            inputs:
+              azureSubscription: "SP-MPN"
+              scriptType: "bash"
+              scriptLocation: "inlineScript"
+              inlineScript: |
+                set -e
+                echo "Executando Terragrunt ${{ parameters.action }} para $(ENV_NAME) em $(REGION)"
+
+                # Exportar as variáveis do grupo MPN-VARS como variáveis de ambiente
+                export ARM_CLIENT_ID="$(ARM_CLIENT_ID)"
+                export ARM_CLIENT_SECRET="$(ARM_CLIENT_SECRET)"
+                export ARM_SUBSCRIPTION_ID="$(ARM_SUBSCRIPTION_ID)"
+                export ARM_TENANT_ID="$(ARM_TENANT_ID)"
+
+                # Verificar se as variáveis foram exportadas corretamente (não mostra o valor, apenas se existe)
+                echo "Verificando variáveis de ambiente:"
+                echo "ARM_CLIENT_ID: $(if [ -n "$ARM_CLIENT_ID" ]; then echo "definido"; else echo "não definido"; fi)"
+                echo "ARM_CLIENT_SECRET: $(if [ -n "$ARM_CLIENT_SECRET" ]; then echo "definido"; else echo "não definido"; fi)"
+                echo "ARM_SUBSCRIPTION_ID: $(if [ -n "$ARM_SUBSCRIPTION_ID" ]; then echo "definido"; else echo "não definido"; fi)"
+                echo "ARM_TENANT_ID: $(if [ -n "$ARM_TENANT_ID" ]; then echo "definido"; else echo "não definido"; fi)"
+
+                # Navegando para o diretório do ambiente
+                cd terragrunt/environments/$(ENV_NAME)/$(REGION)
+
+                # Executando a ação solicitada
+                case "${{ parameters.action }}" in
+                  init)
+                    terragrunt run-all init --non-interactive
+                    ;;
+                  validate)
+                    terragrunt run-all validate --non-interactive
+                    ;;
+                  plan)
+                    # Criar diretório para planos
+                    mkdir -p $(Build.ArtifactStagingDirectory)/plans
+                    
+                    # Gerar plano detalhado
+                    terragrunt run-all plan --non-interactive --out=$(Build.ArtifactStagingDirectory)/plans/tfplan.binary
+                    
+                    # Criar resumo legível do plano
+                    cd $(Build.ArtifactStagingDirectory)/plans
+                    if [ -f "tfplan.binary" ]; then
+                      terraform show -no-color tfplan.binary > plan.txt
+                      echo "Resumo do plano:" > plan_summary.txt
+                      cat plan.txt | grep -E 'Plan:|will be created|will be destroyed|will be updated' >> plan_summary.txt
+                      echo "---"
+                      cat plan_summary.txt
+                    fi
+                    ;;
+                  apply)
+                    terragrunt run-all apply --non-interactive --auto-approve
+                    ;;
+                  destroy)
+                    terragrunt run-all destroy --non-interactive --auto-approve
+                    ;;
+                  output)
+                    terragrunt run-all output --non-interactive
+                    ;;
+                esac
+
+          # Publicar artefatos se estiver em modo de plano
+          - task: PublishPipelineArtifact@1
+            displayName: "📦 Publicar artefatos do plano"
+            inputs:
+              targetPath: "$(Build.ArtifactStagingDirectory)/plans"
+              artifact: "TerraformPlan"
+              publishLocation: "pipeline"
+            condition: and(succeeded(), eq('${{ parameters.action }}', 'plan'))
+
+          # Outputs em caso de apply ou output
+          - bash: |
+              if [[ "${{ parameters.action }}" == "apply" || "${{ parameters.action }}" == "output" ]]; then
+                echo "Coletando outputs..."
+                cd terragrunt/environments/$(ENV_NAME)/$(REGION)
+                terragrunt run-all output --non-interactive || true
+              fi
+            displayName: "📋 Mostrar outputs"
+            condition: and(succeeded(), or(eq('${{ parameters.action }}', 'apply'), eq('${{ parameters.action }}', 'output')))
+
+  - stage: Validation
+    displayName: "🔍 Validação"
+    dependsOn: Infrastructure
+    # Somente executar estágio de validação após aplicar mudanças em produção
+    condition: and(succeeded(), eq('${{ parameters.action }}', 'apply'), eq('${{ parameters.environment }}', 'prod'))
+    jobs:
+      - job: ValidationJob
+        displayName: "✓ Validar Implantação"
+        pool: server
+        steps:
+          - task: ManualValidation@1
+            timeoutInMinutes: 1440 # 24 horas
+            inputs:
+              notifyUsers: "$(BUILD_REQUESTEDFOR)"
+              instructions: "Por favor, valide a implantação em produção e confirme se está tudo correto."
+              onTimeout: "resume"
