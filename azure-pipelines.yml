@@ -186,6 +186,19 @@ stages:
           set -e
           echo "Executando Terragrunt ${{ parameters.action }} para $(ENV_NAME) em $(REGION)"
           
+          # Exportar as variáveis do grupo MPN-VARS como variáveis de ambiente
+          export ARM_CLIENT_ID="$(ARM_CLIENT_ID)"
+          export ARM_CLIENT_SECRET="$(ARM_CLIENT_SECRET)"
+          export ARM_SUBSCRIPTION_ID="$(ARM_SUBSCRIPTION_ID)"
+          export ARM_TENANT_ID="$(ARM_TENANT_ID)"
+          
+          # Verificar se as variáveis foram exportadas corretamente (não mostra o valor, apenas se existe)
+          echo "Verificando variáveis de ambiente:"
+          echo "ARM_CLIENT_ID: $(if [ -n "$ARM_CLIENT_ID" ]; then echo "definido"; else echo "não definido"; fi)"
+          echo "ARM_CLIENT_SECRET: $(if [ -n "$ARM_CLIENT_SECRET" ]; then echo "definido"; else echo "não definido"; fi)"
+          echo "ARM_SUBSCRIPTION_ID: $(if [ -n "$ARM_SUBSCRIPTION_ID" ]; then echo "definido"; else echo "não definido"; fi)"
+          echo "ARM_TENANT_ID: $(if [ -n "$ARM_TENANT_ID" ]; then echo "definido"; else echo "não definido"; fi)"
+          
           # Navegando para o diretório do ambiente
           cd terragrunt/environments/$(ENV_NAME)/$(REGION)
           
