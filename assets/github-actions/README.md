@@ -38,6 +38,28 @@ Este pipeline automatiza o processo de provisionamento e gerenciamento de infrae
    - `ARM_TENANT_ID`: ID do tenant do Azure
    - `SSH_PRIVATE_KEY`: Chave SSH privada para acesso a repositórios
 
+### Usando GitHub CLI para Configurar Secrets
+
+Você também pode configurar os secrets usando o GitHub CLI:
+
+```bash
+# Autenticar no GitHub
+gh auth login
+
+# Criar secrets para o repositório
+gh secret set ARM_CLIENT_ID --body "seu-client-id"
+gh secret set ARM_CLIENT_SECRET --body "seu-client-secret"
+gh secret set ARM_SUBSCRIPTION_ID --body "seu-subscription-id"
+gh secret set ARM_TENANT_ID --body "seu-tenant-id"
+gh secret set SSH_PRIVATE_KEY --body "$(cat ~/.ssh/id_rsa)"
+
+# Alternativa para SSH_PRIVATE_KEY (evitando problemas com quebras de linha)
+gh secret set SSH_PRIVATE_KEY < ~/.ssh/id_rsa
+
+# Para listar as secrets existentes
+gh secret list
+```
+
 ### 2. Configurar Environments (opcional)
 
 1. Acesse **Settings** > **Environments** > **New environment**
