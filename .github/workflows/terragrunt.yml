@@ -15,59 +15,59 @@ on:
       - 'terraform/**'
       - 'terragrunt/**'
 
-  # workflow_dispatch:
-  #   inputs:
-  #     action:
-  #       description: '🔧 Ação a executar'
-  #       required: true
-  #       default: 'plan'
-  #       type: choice
-  #       options:
-  #         - init
-  #         - validate
-  #         - plan
-  #         - apply
-  #         - destroy
-  #         - output
-  #     terraform_version:
-  #       description: '🌐 Versão do Terraform'
-  #       required: true
-  #       default: '1.10.5'
-  #       type: choice
-  #       options:
-  #         - '1.10.5'
-  #         - '1.9.8'
-  #         - '1.8.0'
-  #         - '1.7.5'
-  #         - 'latest'
-  #     terragrunt_version:
-  #       description: '🌐 Versão do Terragrunt'
-  #       required: true
-  #       default: '0.73.14'
-  #       type: choice
-  #       options:
-  #         - '0.73.14'
-  #         - '0.67.9'
-  #         - '0.53.8'
-  #         - '0.48.0'
-  #         - 'latest'
-  #     environment:
-  #       description: '🌐 Ambiente'
-  #       required: true
-  #       default: 'dev'
-  #       type: choice
-  #       options:
-  #         - dev
-  #         - hml
-  #         - prod
-  #     region:
-  #       description: '🌍 Região'
-  #       required: true
-  #       default: 'eastus2'
-  #       type: choice
-  #       options:
-  #         - eastus2
-  #         - brazilsouth
+  workflow_dispatch:
+    inputs:
+      action:
+        description: '🔧 Ação a executar'
+        required: true
+        default: 'plan'
+        type: choice
+        options:
+          - init
+          - validate
+          - plan
+          - apply
+          - destroy
+          - output
+      terraform_version:
+        description: '🌐 Versão do Terraform'
+        required: true
+        default: '1.10.5'
+        type: choice
+        options:
+          - '1.10.5'
+          - '1.9.8'
+          - '1.8.0'
+          - '1.7.5'
+          - 'latest'
+      terragrunt_version:
+        description: '🌐 Versão do Terragrunt'
+        required: true
+        default: '0.73.14'
+        type: choice
+        options:
+          - '0.73.14'
+          - '0.67.9'
+          - '0.53.8'
+          - '0.48.0'
+          - 'latest'
+      environment:
+        description: '🌐 Ambiente'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+          - dev
+          - hml
+          - prod
+      region:
+        description: '🌍 Região'
+        required: true
+        default: 'eastus2'
+        type: choice
+        options:
+          - eastus2
+          - brazilsouth
 permissions:
   contents: read
   pull-requests: write
