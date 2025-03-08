@@ -68,14 +68,24 @@ parameters:
       - brazilsouth
 
 variables:
+  - group: MPN-VARS  # Nome do grupo criado
+  - name: serviceConnectionName
+    value: 'SP-MPN'
+  - name: System.Debug
+    value: true
   # Variáveis de ambiente
-  ENV_NAME: ${{ parameters.environment }}
-  REGION: ${{ parameters.region }}
-  
+  - name: ENV_NAME
+    value: ${{ parameters.environment }}
+  - name: REGION
+    value: ${{ parameters.region }}
   # Configurações do backend
-  TF_STATE_RG: 'rg-terragrunt-state'
-  TF_STATE_SA: 'stterragruntstate'
-  TF_STATE_CONTAINER: 'tg-tfstate'
+  - name: TF_STATE_RG
+    value: 'rg-terragrunt-state'
+  - name: TF_STATE_SA
+    value: 'stterragruntstate'
+  - name: TF_STATE_CONTAINER
+    value: 'tg-tfstate'
+    
 stages:
 - stage: Infrastructure
   displayName: '🏗️ Infraestrutura como Código'
