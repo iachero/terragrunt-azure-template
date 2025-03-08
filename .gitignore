@@ -18,3 +18,4 @@ terragrunt.iml
 .terraform.lock.hcl
 .terraform.tfstate.lock.info
 *.tfplan
+.infracost

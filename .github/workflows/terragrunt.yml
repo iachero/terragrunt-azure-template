@@ -1,0 +1,237 @@
+name: 🏗️ Terragrunt CI/CD
+
+on:
+  push:
+    branches:
+      - main
+      - feature/*
+    paths:
+      - 'terraform/**'
+      - 'terragrunt/**'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'terraform/**'
+      - 'terragrunt/**'
+  workflow_dispatch:
+    inputs:
+      action:
+        description: '🔧 Ação a executar'
+        required: true
+        default: 'plan'
+        type: choice
+        options:
+          - init
+          - validate
+          - plan
+          - apply
+          - destroy
+          - output
+      terraform_version:
+        description: '🌐 Versão do Terraform'
+        required: true
+        default: '1.10.5'
+        type: choice
+        options:
+          - '1.10.5'
+          - '1.9.8'
+          - '1.8.0'
+          - '1.7.5'
+          - 'latest'
+      terragrunt_version:
+        description: '🌐 Versão do Terragrunt'
+        required: true
+        default: '0.73.14'
+        type: choice
+        options:
+          - '0.73.14'
+          - '0.67.9'
+          - '0.53.8'
+          - '0.48.0'
+          - 'latest'
+      environment:
+        description: '🌐 Ambiente'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+          - dev
+          - hml
+          - prod
+      region:
+        description: '🌍 Região'
+        required: true
+        default: 'eastus2'
+        type: choice
+        options:
+          - eastus2
+          - brazilsouth
+
+env:
+  # Variáveis de ambiente
+  ENV_NAME: ${{ github.event.inputs.environment || 'dev' }}
+  REGION: ${{ github.event.inputs.region || 'eastus2' }}
+  ACTION: ${{ github.event.inputs.action || 'plan' }}
+  # Configurações do backend
+  TF_STATE_RG: "rg-terragrunt-state"
+  TF_STATE_SA: "stterragruntstate"
+  TF_STATE_CONTAINER: "tg-tfstate"
+
+jobs:
+  terragrunt:
+    name: 🚀 Terragrunt ${{ github.event.inputs.action || 'plan' }}
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📥 Checkout código
+        uses: actions/checkout@v4
+
+      - name: 🔑 Configurar SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: ⚙️ Instalar tfenv e tgenv
+        run: |
+          echo "Instalando pré-requisitos..."
+
+          echo "Instalando Terraform Version Manager (tfenv)..."
+          if [ ! -d "$HOME/.tfenv" ]; then
+            git clone --depth=1 https://github.com/tfutils/tfenv.git ~/.tfenv
+          fi
+          mkdir -p ~/.local/bin/
+          ln -sf ~/.tfenv/bin/* ~/.local/bin/
+          export PATH="$HOME/.tfenv/bin:$PATH"
+          export PATH="$HOME/.local/bin:$PATH"
+          echo "$HOME/.tfenv/bin" >> $GITHUB_PATH
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+          echo "Instalando Terragrunt Version Manager (tgenv)..."
+          if [ ! -d "$HOME/.tgenv" ]; then
+            git clone --depth=1 --branch main https://github.com/tgenv/tgenv.git ~/.tgenv
+          fi
+          export PATH="$HOME/.tgenv/bin:$PATH"
+          echo "$HOME/.tgenv/bin" >> $GITHUB_PATH
+
+          # Verificar instalação
+          echo "Verificando instalação do tfenv..."
+          which tfenv || echo "tfenv não encontrado no PATH"
+
+          echo "Verificando instalação do tgenv..."
+          which tgenv || echo "tgenv não encontrado no PATH"
+
+          # Listar diretórios para debug
+          echo "Conteúdo de ~/.tfenv/bin:"
+          ls -la ~/.tfenv/bin || echo "Diretório não encontrado"
+
+          echo "Conteúdo de ~/.tgenv/bin:"
+          ls -la ~/.tgenv/bin || echo "Diretório não encontrado"
+
+          echo "PATH atual:"
+          echo $PATH
+
+      - name: ⚙️ Instalar Terraform e Terragrunt
+        run: |
+          # Definir versão do Terraform
+          TF_VERSION="${{ github.event.inputs.terraform_version || '1.10.5' }}"
+          if [ "$TF_VERSION" = "latest" ]; then
+            TF_VERSION=$(tfenv list-remote | grep -v "-" | head -n 1)
+            echo "Usando a versão mais recente do Terraform: $TF_VERSION"
+          fi
+
+          # Instalar e usar a versão do Terraform
+          echo "Instalando Terraform $TF_VERSION..."
+          tfenv install $TF_VERSION
+          tfenv use $TF_VERSION
+          terraform --version
+
+          # Definir versão do Terragrunt
+          TG_VERSION="${{ github.event.inputs.terragrunt_version || '0.73.14' }}"
+          if [ "$TG_VERSION" = "latest" ]; then
+            TG_VERSION=$(curl -s https://api.github.com/repos/gruntwork-io/terragrunt/releases/latest | grep '"tag_name":' | sed -E 's/.*"v([^"]+)".*/\1/')
+            echo "Usando a versão mais recente do Terragrunt: $TG_VERSION"
+          fi
+
+          # Instalar e usar a versão do Terragrunt
+          echo "Instalando Terragrunt $TG_VERSION..."
+          tgenv install $TG_VERSION
+          tgenv use $TG_VERSION
+          terragrunt --version
+
+      - name: ✅ Validar sintaxe
+        if: ${{ env.ACTION != 'destroy' }}
+        run: |
+          echo "Formatando e validando arquivos Terraform..."
+          terraform fmt --check --recursive ./terraform || true
+
+          echo "Formatando e validando arquivos Terragrunt..."
+          terragrunt hclfmt --check --working-dir ./terragrunt || true
+
+      - name: 🔄 Executar Terragrunt ${{ github.event.inputs.action || 'plan' }}
+        env:
+          ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+          ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+          ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+        run: |
+          set -e
+          echo "Executando Terragrunt ${{ env.ACTION }} para ${{ env.ENV_NAME }} em ${{ env.REGION }}"
+          mkdir -p /tmp/.terragrunt-cache/.plugins
+          
+          # Verificar se as variáveis foram exportadas corretamente (não mostra o valor, apenas se existe)
+          echo "Verificando variáveis de ambiente:"
+          echo "ARM_CLIENT_ID: $(if [ -n "$ARM_CLIENT_ID" ]; then echo "definido"; else echo "não definido"; fi)"
+          echo "ARM_CLIENT_SECRET: $(if [ -n "$ARM_CLIENT_SECRET" ]; then echo "definido"; else echo "não definido"; fi)"
+          echo "ARM_SUBSCRIPTION_ID: $(if [ -n "$ARM_SUBSCRIPTION_ID" ]; then echo "definido"; else echo "não definido"; fi)"
+          echo "ARM_TENANT_ID: $(if [ -n "$ARM_TENANT_ID" ]; then echo "definido"; else echo "não definido"; fi)"
+
+          # Navegando para o diretório do ambiente
+          cd terragrunt/environments/${{ env.ENV_NAME }}/${{ env.REGION }}
+
+          # Executando a ação solicitada
+          case "${{ env.ACTION }}" in
+            init)
+              terragrunt run-all init --non-interactive
+              ;;
+            validate)
+              terragrunt run-all validate --non-interactive
+              ;;
+            plan)
+              # Gerar plano detalhado
+              terragrunt run-all plan --non-interactive 
+              ;;
+            apply)
+              terragrunt run-all apply --non-interactive --auto-approve
+              ;;
+            destroy)
+              terragrunt run-all destroy --non-interactive --auto-approve
+              ;;
+            output)
+              terragrunt run-all output --non-interactive
+              ;;
+          esac
+
+      - name: 📋 Mostrar outputs
+        if: ${{ success() && (env.ACTION == 'apply' || env.ACTION == 'output') }}
+        env:
+          ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+          ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+          ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+        run: |
+          echo "Coletando outputs..."
+          cd terragrunt/environments/${{ env.ENV_NAME }}/${{ env.REGION }}
+          terragrunt run-all output --non-interactive || true
+
+  validation:
+    name: ✓ Validar Implantação
+    needs: terragrunt
+    if: ${{ success() && github.event.inputs.action == 'apply' && github.event.inputs.environment == 'prod' }}
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: 🔍 Validação manual
+        run: |
+          echo "Implantação em produção concluída com sucesso!"
+          echo "Por favor, valide a implantação em produção e confirme se está tudo correto." 
