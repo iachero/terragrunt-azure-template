@@ -150,7 +150,7 @@ Veja a documentação das soluções de CI/CD para o Azure e GitHub.
 
 | ✈️ Azure Pipelines | ✈️ GitHub Actions |
 |:------------------:|:------------------:|
-| <img src="./assets/docs/images/azure-pipelines.png" width="150" alt="Banner Azure Pipelines"> | <img src="assets/docs/images/github-actions.png" width="150" alt="Banner GitHub Actions"> |
+| <img src="/assets/docs/images/azure-pipelines.png" width="150" alt="Banner Azure Pipelines"> | <img src="assets/docs/images/github-actions.png" width="150" alt="Banner GitHub Actions"> |
 | [README](assets/azure-pipelines/README.md)  | [README](assets/github-actions/README.md) |
 
 
