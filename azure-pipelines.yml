@@ -27,6 +27,29 @@ parameters:
       - apply
       - destroy
       - output
+
+  - name: terraform_version
+    displayName: '🌐 Versão do Terraform'
+    default: '1.10.5'
+    type: string
+    values:
+      - '1.10.5'
+      - '1.9.8'
+      - '1.8.0'
+      - '1.7.5'
+      - 'latest'
+
+  - name: terragrunt_version
+    displayName: '🌐 Versão do Terragrunt'
+    default: '0.73.14'
+    type: string
+    values:
+      - '0.73.14'
+      - '0.67.9'
+      - '0.53.8'
+      - '0.48.0'
+      - 'latest'
+
   - name: environment
     displayName: '🌐 Ambiente'
     default: 'dev'
@@ -45,15 +68,11 @@ parameters:
       - brazilsouth
 
 variables:
-  # Variáveis do ambiente
-  TERRAFORM_VERSION: '1.10.5'
-  TERRAGRUNT_VERSION: '0.73.14'
-  
-  # Definir ambiente default (será substituído pelos parâmetros do pipeline)
+  # Variáveis de ambiente
   ENV_NAME: ${{ parameters.environment }}
   REGION: ${{ parameters.region }}
   
-  # Configurações do backend (opcional, pode ser substituído pelas variáveis de ambiente ARM_*)
+  # Configurações do backend
   TF_STATE_RG: 'rg-terragrunt-state'
   TF_STATE_SA: 'stterragruntstate'
   TF_STATE_CONTAINER: 'tg-tfstate'
@@ -65,21 +84,59 @@ stages:
   - job: TerragruntJob
     displayName: '🚀 Terragrunt ${{ parameters.action }}'
     pool:
-      vmImage: 'ubuntu-latest'
+      vmImage: 'ubuntu-24.04'
     steps:
-    # Instalar Terraform e Terragrunt apenas uma vez por job
+    # Instalar tfenv e tgenv
     - bash: |
-        echo "Instalando Terraform v$(TERRAFORM_VERSION)..."
-        curl -LO "https://releases.hashicorp.com/terraform/$(TERRAFORM_VERSION)/terraform_$(TERRAFORM_VERSION)_linux_amd64.zip"
-        sudo apt-get update && sudo apt-get install -y unzip
-        unzip terraform_$(TERRAFORM_VERSION)_linux_amd64.zip
-        sudo mv terraform /usr/local/bin/
+        echo "Instalando pré-requisitos..."
+        sudo apt-get update && sudo apt-get install -y git curl unzip jq
+
+        echo "Instalando Terraform Version Manager (tfenv)..."
+        if [ ! -d "$HOME/.tfenv" ]; then
+          git clone --depth=1 https://github.com/tfutils/tfenv.git ~/.tfenv
+        fi
+        mkdir -p ~/.local/bin/
+        ln -sf ~/.tfenv/bin/* ~/.local/bin/
+        echo "##vso[task.prependpath]$HOME/.tfenv/bin"
+        echo "##vso[task.prependpath]$HOME/.local/bin"
+
+        echo "Instalando Terragrunt Version Manager (tgenv)..."
+        if [ ! -d "$HOME/.tgenv" ]; then
+          git clone --depth=1 --branch main https://github.com/tgenv/tgenv.git ~/.tgenv
+        fi
+        echo "##vso[task.prependpath]$HOME/.tgenv/bin"
+
+        # Verificar instalação
+        which tfenv
+        which tgenv
+      displayName: '⚙️ Instalar tfenv e tgenv'
+
+    # Instalar versões específicas do Terraform e Terragrunt
+    - bash: |
+        # Definir versão do Terraform
+        TF_VERSION="${{ parameters.terraform_version }}"
+        if [ "$TF_VERSION" = "latest" ]; then
+          TF_VERSION=$(tfenv list-remote | grep -v "-" | head -n 1)
+          echo "Usando a versão mais recente do Terraform: $TF_VERSION"
+        fi
+
+        # Instalar e usar a versão do Terraform
+        echo "Instalando Terraform $TF_VERSION..."
+        tfenv install $TF_VERSION
+        tfenv use $TF_VERSION
         terraform --version
 
-        echo "Instalando Terragrunt v$(TERRAGRUNT_VERSION)..."
-        curl -LO "https://github.com/gruntwork-io/terragrunt/releases/download/v$(TERRAGRUNT_VERSION)/terragrunt_linux_amd64"
-        chmod +x terragrunt_linux_amd64
-        sudo mv terragrunt_linux_amd64 /usr/local/bin/terragrunt
+        # Definir versão do Terragrunt
+        TG_VERSION="${{ parameters.terragrunt_version }}"
+        if [ "$TG_VERSION" = "latest" ]; then
+          TG_VERSION=$(curl -s https://api.github.com/repos/gruntwork-io/terragrunt/releases/latest | grep '"tag_name":' | sed -E 's/.*"v([^"]+)".*/\1/')
+          echo "Usando a versão mais recente do Terragrunt: $TG_VERSION"
+        fi
+
+        # Instalar e usar a versão do Terragrunt
+        echo "Instalando Terragrunt $TG_VERSION..."
+        tgenv install $TG_VERSION
+        tgenv use $TG_VERSION
         terragrunt --version
       displayName: '⚙️ Instalar Terraform e Terragrunt'
 
@@ -139,6 +196,9 @@ stages:
             destroy)
               terragrunt run-all destroy --non-interactive --auto-approve
               ;;
+            output)
+              terragrunt run-all output --non-interactive
+              ;;
           esac
 
     # Publicar artefatos se estiver em modo de plano
@@ -150,15 +210,15 @@ stages:
         publishLocation: 'pipeline'
       condition: and(succeeded(), eq('${{ parameters.action }}', 'plan'))
 
-    # Outputs em caso de apply
+    # Outputs em caso de apply ou output
     - bash: |
-        if [ "${{ parameters.action }}" == "apply" ]; then
+        if [[ "${{ parameters.action }}" == "apply" || "${{ parameters.action }}" == "output" ]]; then
           echo "Coletando outputs..."
           cd terragrunt/environments/$(ENV_NAME)/$(REGION)
           terragrunt run-all output --non-interactive || true
         fi
-      displayName: '📋 Mostrar outputs (somente apply)'
-      condition: and(succeeded(), eq('${{ parameters.action }}', 'apply'))
+      displayName: '📋 Mostrar outputs'
+      condition: and(succeeded(), or(eq('${{ parameters.action }}', 'apply'), eq('${{ parameters.action }}', 'output')))
 
 - stage: Validation
   displayName: '🔍 Validação'
