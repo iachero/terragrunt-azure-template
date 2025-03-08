@@ -71,8 +71,6 @@ variables:
   - group: MPN-VARS # Nome do grupo criado
   - name: serviceConnectionName
     value: "SP-MPN"
-  - name: System.Debug
-    value: true
   # Variáveis de ambiente
   - name: ENV_NAME
     value: ${{ parameters.environment }}
@@ -97,7 +95,7 @@ stages:
           - bash: |
               echo "##vso[task.setvariable variable=AgentName;isoutput=true]$(Agent.Name)"
             name: passOutput
-            displayName: '🖥️ - Capturar Nome do Agente'
+            displayName: "🖥️ - Capturar Nome do Agente"
 
           - task: DownloadSecureFile@1
             name: downloadPrivateKey
